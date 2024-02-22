@@ -4,6 +4,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import Message
 from aiogram import Router
 
+from base.utils import get_storage
 from menu.category.handlers import category_list_handler
 
 router = Router()
@@ -21,15 +22,31 @@ class Commands(Enum):
 
 
 @router.message(CommandStart())
-async def command_start_handler(message: Message) -> None:
+async def command_start_handler(message: Message, *args, **kwargs) -> None:
     welcome_text = '''Welcome to the Pizza bot!'''
+    user_data = get_or_create(message)
+    storage = get_storage()
+    # todo: send request to api
+    await storage.set_data(user_data['user_id'], {'user_data': user_data})
     await message.answer(welcome_text)
-    await category_list_handler(message)
+    await category_list_handler(message, *args, **kwargs)
+
+
+def get_or_create(message):
+    user = message.from_user
+    return {
+        'username': user.username,
+        'user_id': user.id,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'is_block': False,
+        'url': user.url,
+    }
 
 
 @router.message(Command('help'))
 async def command_help_handler(message: Message) -> None:
-    result = '''Available commands:\n'''
+    result = 'Available commands:\n'
     for command in Commands.values():
         result += f'{command} \n'
     await message.answer(result)
