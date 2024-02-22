@@ -6,6 +6,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from settings.base import TOKEN
 from commands.handlers import router as commands_router
 from menu.category.handlers import router as category_router
+from menu.dish.handlers import router as dish_router
 
 
 storage = MemoryStorage()
@@ -14,7 +15,7 @@ storage = MemoryStorage()
 async def main() -> None:
     bot = Bot(TOKEN)
     dp = Dispatcher(storage=storage)
-    dp.include_routers(commands_router, category_router)
+    dp.include_routers(commands_router, dish_router, category_router)
     await dp.start_polling(bot, skip_updates=True)
 
 

@@ -17,15 +17,16 @@ class CategoryHandler(KeyboardHandler, MessageHandler):
         inline_keyboard = []
         category_list = self._get_categories()
         for category in category_list:
-            btn = InlineKeyboardButton(text=category, callback_data=f'{self.prefix}|{category}')
+            btn = InlineKeyboardButton(text=category['name'], callback_data=f'{self.prefix}|{category["id"]}')
             inline_keyboard.append([btn])
         inline_markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
         return inline_markup
 
-    def _get_categories(self) -> tuple:
+    def _get_categories(self):
         # todo: 1. category request
         #       2. must be async method
-        return 'Main dish', 'Soups', 'Salat list', 'Drinks', 'Alcohol drinks'
+        gen = (x for x in range(999))
+        return [{'id': next(gen), 'name': x} for x in ('Main dish', 'Soups', 'Salat list', 'Drinks', 'Alcohol drinks')]
 
 
 class CategoryDetailHandler(KeyboardHandler, CallbackHandler):
@@ -37,18 +38,28 @@ class CategoryDetailHandler(KeyboardHandler, CallbackHandler):
 
     async def handle(self):
         await self._state.set_state(Category.category_detail)
-        category = self._callback.data.split('|')[1]
+        category_id = self._callback.data.split('|')[1]
+        data = await self._state.get_data()
+        data.update({self.prefix: category_id})
+        await self._state.set_data(data)
+
+        category = self._get_category(category_id)
         await self._callback.message.answer(f'Category {category}')
         for dish in self._get_dishes():
-            inline_markup = self._get_keyboard(dish['id'])
+            inline_markup = self._get_keyboard(dish)
             await self._callback.message.answer('; '.join(
                 [str(x) for x in dish.values()]
             ), reply_markup=inline_markup)
 
-    def _get_keyboard(self, id_, *args, **kwargs) -> InlineKeyboardMarkup:
+    def _get_category(self, category_id):
+        return 'Main dish'
+
+    def _get_keyboard(self, dish, *args, **kwargs) -> InlineKeyboardMarkup:
         btn_list = []
-        for name in ('+', '-', 'Edit'):
-            btn = InlineKeyboardButton(text=name, callback_data=f'{self.prefix}|{name}|{id_}')
+        # todo: add if amount 0 else edit, delete
+        btn_iterator = ('Add',) if dish['amount'] == 0 else ('Edit', 'Delete')
+        for name in btn_iterator:
+            btn = InlineKeyboardButton(text=name, callback_data=f'{self.prefix}|{name}|{dish["id"]}')
             btn_list.append(btn)
         inline_markup = InlineKeyboardMarkup(inline_keyboard=[btn_list])
         return inline_markup
@@ -61,6 +72,8 @@ class CategoryDetailHandler(KeyboardHandler, CallbackHandler):
             'description': '',
             'price': '',
             'image': '',
-            'category': ''
+            'category': '',
+            'amount': 0,
         } for x in ('Hachapuri', 'Borsh', 'Cotlet with pure', 'Draniki'))
+        dishes[-2]['amount'] = 3
         return dishes
