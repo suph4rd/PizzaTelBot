@@ -4,6 +4,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import Message
 from aiogram import Router
 
+from menu.category.handlers import category_list_handler
 
 router = Router()
 
@@ -23,6 +24,7 @@ class Commands(Enum):
 async def command_start_handler(message: Message) -> None:
     welcome_text = '''Welcome to the Pizza bot!'''
     await message.answer(welcome_text)
+    await category_list_handler(message)
 
 
 @router.message(Command('help'))
