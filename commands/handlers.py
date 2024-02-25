@@ -6,6 +6,9 @@ from aiogram import Router
 
 from base.utils import get_storage
 from menu.category.handlers import category_list_handler
+from aiogram.fsm.context import FSMContext
+from .states import DefaultState
+
 
 router = Router()
 
@@ -22,14 +25,15 @@ class Commands(Enum):
 
 
 @router.message(CommandStart())
-async def command_start_handler(message: Message, *args, **kwargs) -> None:
+async def command_start_handler(message: Message, state: FSMContext, *args, **kwargs) -> None:
     welcome_text = '''Welcome to the Pizza bot!'''
     user_data = get_or_create(message)
     storage = get_storage()
     # todo: send request to api
     await storage.set_data(user_data['user_id'], {'user_data': user_data})
     await message.answer(welcome_text)
-    await category_list_handler(message, *args, **kwargs)
+    await state.set_state(DefaultState.base)
+    await category_list_handler(message, state=state, *args, **kwargs)
 
 
 def get_or_create(message):

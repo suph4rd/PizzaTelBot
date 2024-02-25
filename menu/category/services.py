@@ -1,3 +1,5 @@
+import re
+
 from aiogram.types.inline_keyboard_markup import InlineKeyboardMarkup
 from aiogram.types.inline_keyboard_button import InlineKeyboardButton
 
@@ -5,11 +7,13 @@ from base.handlers import KeyboardHandler, MessageHandler, CallbackHandler
 from .states import Category
 
 
-class CategoryHandler(KeyboardHandler, MessageHandler):
-    prefix = 'list_category_'
+class CategoryMessageHandler(KeyboardHandler, MessageHandler):
+    prefix = 'list_category'
+    category_id = 'category_id'
+    re_category_id = 'category_id_\d+/'
 
     async def handle(self, *args, **kwargs):
-        await self._state.set_state(Category.category_list)
+        await self._state.set_state(Category.list)
         inline_markup = self._get_keyboard()
         await self._message.answer("Choose the category", reply_markup=inline_markup)
 
@@ -17,7 +21,8 @@ class CategoryHandler(KeyboardHandler, MessageHandler):
         inline_keyboard = []
         category_list = self._get_categories()
         for category in category_list:
-            btn = InlineKeyboardButton(text=category['name'], callback_data=f'{self.prefix}|{category["id"]}')
+            btn = InlineKeyboardButton(text=category['name'],
+                                       callback_data=f'{self.prefix}/category_id_{category["id"]}/')
             inline_keyboard.append([btn])
         inline_markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
         return inline_markup
@@ -29,18 +34,19 @@ class CategoryHandler(KeyboardHandler, MessageHandler):
         return [{'id': next(gen), 'name': x} for x in ('Main dish', 'Soups', 'Salat list', 'Drinks', 'Alcohol drinks')]
 
 
-class CategoryDetailHandler(KeyboardHandler, CallbackHandler):
-    prefix = 'detail_category_'
+class CategoryDetailCallbackHandler(KeyboardHandler, CallbackHandler):
+    prefix = 'detail_category'
 
     # todo: 1. handle actions (+ - edit)
     #       2. customize dish data as post
     #       3. customize Title of topic [css styles]
 
     async def handle(self):
-        await self._state.set_state(Category.category_detail)
-        category_id = self._callback.data.split('|')[1]
+        await self._state.set_state(Category.detail)
+        # category_id = self._callback.data.split('|')[1]
+        category_id = re.search(CategoryMessageHandler.re_category_id, self._callback.data)
         data = await self._state.get_data()
-        data.update({self.prefix: category_id})
+        data.update({CategoryMessageHandler.category_id: category_id})
         await self._state.set_data(data)
 
         category = self._get_category(category_id)
@@ -59,7 +65,7 @@ class CategoryDetailHandler(KeyboardHandler, CallbackHandler):
         # todo: add if amount 0 else edit, delete
         btn_iterator = ('Add',) if dish['amount'] == 0 else ('Edit', 'Delete')
         for name in btn_iterator:
-            btn = InlineKeyboardButton(text=name, callback_data=f'{self.prefix}|{name}|{dish["id"]}')
+            btn = InlineKeyboardButton(text=name, callback_data=f'{self.prefix}/dish_name_{name}/dish_id_{dish["id"]}')
             btn_list.append(btn)
         inline_markup = InlineKeyboardMarkup(inline_keyboard=[btn_list])
         return inline_markup

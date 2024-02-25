@@ -22,5 +22,6 @@ class MessageHandler(Handler):
 class CallbackHandler(Handler):
     def __init__(self, callback, *args, **kwargs):
         self._callback: CallbackQuery = callback
+        self._message: Message = callback.message
         self._state: FSMContext = kwargs.get('state')
         self._data = kwargs
