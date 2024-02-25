@@ -2,7 +2,8 @@ from aiogram.types.inline_keyboard_markup import InlineKeyboardMarkup
 from aiogram.types.inline_keyboard_button import InlineKeyboardButton
 
 from base.handlers import MessageHandler, CallbackHandler, KeyboardHandler
-from menu.dish.consts import DISH_DETAIL_REDIRECT_FUNCTION, DishDetailRedirect
+from menu.category.services import CategoryMessageHandler
+from menu.dish.consts import DishDetailRedirect
 from menu.dish.states import Dish
 
 
@@ -42,12 +43,17 @@ class DishCommentHandler(MessageHandler):
 
 class DishFinishHandler(KeyboardHandler, MessageHandler):
     async def handle(self, *args, **kwargs):
-        keyboard = self._get_keyboard()
+        await self._state.set_state(Dish.redirect)
+        data = await self._state.get_data()
+        category_id = data[CategoryMessageHandler.category_id]
+        keyboard = self._get_keyboard(category_id)
         await self._message.answer('Dish added successfully', reply_markup=keyboard)
 
-    def _get_keyboard(self, *args, **kwargs) -> InlineKeyboardMarkup:
+    def _get_keyboard(self, category_id, *args, **kwargs) -> InlineKeyboardMarkup:
         inline_keyboard = []
         for link, title in (DishDetailRedirect.category_list, DishDetailRedirect.category_detail):
+            if link == DishDetailRedirect.category_detail[0]:
+                link += f'_{category_id}/'
             btn = InlineKeyboardButton(text=title,
                                        callback_data=link)
             inline_keyboard.append([btn])
@@ -57,6 +63,16 @@ class DishFinishHandler(KeyboardHandler, MessageHandler):
 
 class DishRedirectHandler(CallbackHandler):
     async def handle(self, *args, **kwargs):
-        data = self._callback.data
-        func = DISH_DETAIL_REDIRECT_FUNCTION[data]
-        await func(self._message, **self._data)
+        from menu.category.handlers import category_list_redirect_handler, category_detail_redirect_handler
+        dish_detail_redirect_function = {
+            DishDetailRedirect.category_list[0]: category_list_redirect_handler,
+            DishDetailRedirect.category_detail[0]: category_detail_redirect_handler
+        }
+        func = None
+        for key in dish_detail_redirect_function:
+            if self._callback.data.startswith(key):
+                func = dish_detail_redirect_function[key]
+                break
+        if not func:
+            raise Exception('func is None!')
+        await func(self._callback, **self._data)

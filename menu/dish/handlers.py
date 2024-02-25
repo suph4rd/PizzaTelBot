@@ -1,7 +1,7 @@
 from aiogram import Router
 from aiogram.types import Message, CallbackQuery
 
-from .services import DishAmountCallbackHandler, DishAmountMessageHandler, DishCommentHandler, DishFinishHandler, \
+from .services import DishAmountCallbackHandler, DishAmountMessageHandler, DishCommentHandler, \
     DishRedirectHandler
 from .states import Dish
 from ..category.states import Category

@@ -35,7 +35,7 @@ class CategoryMessageHandler(KeyboardHandler, MessageHandler):
         return [{'id': next(gen), 'name': x} for x in ('Main dish', 'Soups', 'Salat list', 'Drinks', 'Alcohol drinks')]
 
 
-class CategoryDetailCallbackHandler(KeyboardHandler, CallbackHandler):
+class CategoryDetailBase(KeyboardHandler):
     prefix = 'detail_category'
 
     # todo: 1. handle actions (+ - edit)
@@ -45,19 +45,22 @@ class CategoryDetailCallbackHandler(KeyboardHandler, CallbackHandler):
     async def handle(self):
         # todo: clean active dish_id
         await self._state.set_state(Category.detail)
-        # category_id = self._callback.data.split('|')[1]
-        category_id = re.search(CategoryMessageHandler.re_category_id, self._callback.data)
+        category_id = self._get_category_id()
+
         data = await self._state.get_data()
         data.update({CategoryMessageHandler.category_id: category_id})
         await self._state.set_data(data)
 
         category = self._get_category(category_id)
-        await self._callback.message.answer(f'Category {category}')
+        await self._message.answer(f'Category {category}')
         for dish in self._get_dishes():
             inline_markup = self._get_keyboard(dish)
-            await self._callback.message.answer('; '.join(
+            await self._message.answer('; '.join(
                 [str(x) for x in dish.values()]
             ), reply_markup=inline_markup)
+
+    def _get_category_id(self):
+        raise NotImplementedError
 
     def _get_category(self, category_id):
         return 'Main dish'
@@ -85,3 +88,12 @@ class CategoryDetailCallbackHandler(KeyboardHandler, CallbackHandler):
         } for x in ('Hachapuri', 'Borsh', 'Cotlet with pure', 'Draniki'))
         dishes[-2]['amount'] = 3
         return dishes
+
+
+class CategoryDetailCallbackHandler(CategoryDetailBase, CallbackHandler):
+    def _get_category_id(self):
+        category_search = re.search(CategoryMessageHandler.re_category_id, self._callback.data)
+        if not category_search:
+            raise ValueError('category_id is absent')
+        category_data = category_search[0][:-1]
+        return int(category_data.split('_')[-1])
