@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 
 from .consts import DishDetailRedirect
 from .services import DishAmountCallbackHandler, DishAmountMessageHandler, DishCommentHandler, \
-    DishRedirectHandler, DishListCallbackHandler
+    DishRedirectHandler, MenuDishListCallbackHandler
 from .states import Dish
 from ..category.services import CategoryMessageHandler
 from ..category.states import Category
@@ -14,12 +14,12 @@ router = Router()
 
 @router.callback_query(F.data.startswith(CategoryMessageHandler.prefix), Category.list)
 async def category_detail_handler(callback_query: CallbackQuery, *args, **kwargs) -> None:
-    await DishListCallbackHandler(callback_query, *args, **kwargs).handle()
+    await MenuDishListCallbackHandler(callback_query, *args, **kwargs).handle()
 
 
 @router.callback_query(F.data == DishDetailRedirect.dish_list[0], Dish.redirect)
 async def category_detail_redirect_handler(callback_query: CallbackQuery, *args, **kwargs) -> None:
-    await DishListCallbackHandler(callback_query,*args, **kwargs).handle()
+    await MenuDishListCallbackHandler(callback_query,*args, **kwargs).handle()
 
 
 @router.callback_query(Dish.list)

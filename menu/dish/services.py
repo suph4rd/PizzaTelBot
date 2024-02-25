@@ -3,21 +3,16 @@ import re
 from aiogram.types.inline_keyboard_markup import InlineKeyboardMarkup
 from aiogram.types.inline_keyboard_button import InlineKeyboardButton
 
-from base.handlers import MessageHandler, CallbackHandler, KeyboardHandler
+from base.handlers import MessageHandler, CallbackHandler, KeyboardHandler, BaseDishList
 from menu.category.services import CategoryMessageHandler
 from menu.dish.consts import DishDetailRedirect
 from menu.dish.states import Dish
 
 
-# todo: rename in DishList -> move in Dish logic; Separete in base logic (for basket and dish)
-class DishListBase(KeyboardHandler):
-    prefix = 'dish_list'
+class MenuBaseDishList(BaseDishList, KeyboardHandler):
+    prefix = 'menu_dish_list'
 
-    # todo: 1. handle actions (+ - edit)
-    #       2. customize dish data as post
-    #       3. customize Title of topic [css styles]
-
-    async def handle(self):
+    async def pre_handle(self, *args, **kwargs):
         # todo: clean active dish_id
         await self._state.set_state(Dish.list)
         category_id = self._get_category_id()
@@ -29,29 +24,10 @@ class DishListBase(KeyboardHandler):
         category = self._get_category(category_id)
         await self._message.answer(f'Category {category}')
 
-        for dish in self._get_dishes():
-            inline_markup = self._get_keyboard(dish)
-            await self._message.answer('; '.join(
-                [str(x) for x in dish.values()]
-            ), reply_markup=inline_markup)
-
-    def _get_category_id(self):
-        raise NotImplementedError
-
     def _get_category(self, category_id):
         return 'Main dish'
 
-    def _get_keyboard(self, dish, *args, **kwargs) -> InlineKeyboardMarkup:
-        btn_list = []
-        # todo: add if amount 0 else edit, delete
-        btn_iterator = ('Add',) if dish['amount'] == 0 else ('Edit', 'Delete')
-        for name in btn_iterator:
-            btn = InlineKeyboardButton(text=name, callback_data=f'{self.prefix}/dish_name_{name}/dish_id_{dish["id"]}')
-            btn_list.append(btn)
-        inline_markup = InlineKeyboardMarkup(inline_keyboard=[btn_list])
-        return inline_markup
-
-    def _get_dishes(self) -> tuple:
+    async def _get_dishes(self):
         gen = (x for x in range(999))
         dishes = tuple({
                            'id': next(gen),
@@ -65,8 +41,11 @@ class DishListBase(KeyboardHandler):
         dishes[-2]['amount'] = 3
         return dishes
 
+    def _get_category_id(self):
+        raise NotImplementedError
 
-class DishListCallbackHandler(DishListBase, CallbackHandler):
+
+class MenuDishListCallbackHandler(MenuBaseDishList, CallbackHandler):
     def _get_category_id(self):
         category_search = re.search(CategoryMessageHandler.re_category_id, self._callback.data)
         if not category_search:
