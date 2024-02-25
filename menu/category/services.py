@@ -14,6 +14,7 @@ class CategoryMessageHandler(KeyboardHandler, MessageHandler):
 
     async def handle(self, *args, **kwargs):
         await self._state.set_state(Category.list)
+        # todo: clean active category_id/dish_id
         inline_markup = self._get_keyboard()
         await self._message.answer("Choose the category", reply_markup=inline_markup)
 
@@ -42,6 +43,7 @@ class CategoryDetailCallbackHandler(KeyboardHandler, CallbackHandler):
     #       3. customize Title of topic [css styles]
 
     async def handle(self):
+        # todo: clean active dish_id
         await self._state.set_state(Category.detail)
         # category_id = self._callback.data.split('|')[1]
         category_id = re.search(CategoryMessageHandler.re_category_id, self._callback.data)

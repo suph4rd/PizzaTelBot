@@ -1,4 +1,8 @@
-from base.handlers import MessageHandler, CallbackHandler
+from aiogram.types.inline_keyboard_markup import InlineKeyboardMarkup
+from aiogram.types.inline_keyboard_button import InlineKeyboardButton
+
+from base.handlers import MessageHandler, CallbackHandler, KeyboardHandler
+from menu.dish.consts import DISH_DETAIL_REDIRECT_FUNCTION, DishDetailRedirect
 from menu.dish.states import Dish
 
 
@@ -30,7 +34,24 @@ class DishCommentHandler(MessageHandler):
         return value.isdigit()
 
 
-class DishFinishHandler(MessageHandler):
+class DishFinishHandler(KeyboardHandler, MessageHandler):
     async def handle(self, *args, **kwargs):
-        await self._message.answer('Dish added successfully')
-        # todo: 1. send btns for redirect to the category detail, category list
+        keyboard = self._get_keyboard()
+        await self._message.answer('Dish added successfully', reply_markup=keyboard)
+
+    def _get_keyboard(self, *args, **kwargs) -> InlineKeyboardMarkup:
+        inline_keyboard = []
+        for link in (DishDetailRedirect.category_list, DishDetailRedirect.category_detail):
+            # todo: add cost for user-friendly text
+            btn = InlineKeyboardButton(text=link,
+                                       callback_data=link)
+            inline_keyboard.append([btn])
+        inline_markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+        return inline_markup
+
+
+class DishRedirectHandler(CallbackHandler):
+    async def handle(self, *args, **kwargs):
+        data = self._callback.data
+        func = DISH_DETAIL_REDIRECT_FUNCTION[data]
+        await func(self._message, **self._data)
