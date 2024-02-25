@@ -10,9 +10,6 @@ from ..category.states import Category
 router = Router()
 
 
-# todo: remake validation logic:
-#       validateon func -> await next logic block func
-
 @router.callback_query(Category.detail)
 async def dish_detail_amount_handler(callback_query: CallbackQuery, *args, **kwargs) -> None:
     await DishAmountCallbackHandler(callback_query, *args, **kwargs).handle()
@@ -24,12 +21,12 @@ async def dish_detail_amount_error_handler(message: Message, *args, **kwargs) ->
 
 @router.message(Dish.amount)
 async def dish_detail_comment_handler(message: Message, *args, **kwargs) -> None:
-    await DishCommentHandler(message, *args, **kwargs).handle()
+    await DishAmountMessageHandler(message, *args, **kwargs).validation_handle()
 
 
 @router.message(Dish.comment)
 async def dish_detail_comment_handler(message: Message, *args, **kwargs) -> None:
-    await DishFinishHandler(message, *args, **kwargs).handle()
+    await DishCommentHandler(message, *args, **kwargs).validation_handle()
 
 
 @router.callback_query(Dish.redirect)

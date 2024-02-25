@@ -11,6 +11,17 @@ class BaseDishAmount:
         await self._state.set_state(Dish.amount)
         await self._message.answer('Enter amount of dish')
 
+    async def validation_handle(self, *args, **kwargs):
+        if not self._is_valid_amount(self._message.text):
+            await self._message.answer('Invalid amount of dish')
+            from menu.dish.handlers import dish_detail_amount_error_handler
+            await dish_detail_amount_error_handler(self._message, **self._data)
+            return
+        await DishCommentHandler(self._message, **self._data).handle()
+
+    def _is_valid_amount(self, value: str) -> bool:
+        return value.isdigit()
+
 
 class DishAmountCallbackHandler(BaseDishAmount, CallbackHandler):
     pass
@@ -22,16 +33,11 @@ class DishAmountMessageHandler(BaseDishAmount, MessageHandler):
 
 class DishCommentHandler(MessageHandler):
     async def handle(self, *args, **kwargs):
-        if not self._is_valid_amount(self._message.text):
-            await self._message.answer('Invalid amount of dish')
-            from menu.dish.handlers import dish_detail_amount_error_handler
-            await dish_detail_amount_error_handler(self._message, **self._data)
-            return
         await self._state.set_state(Dish.comment)
         await self._message.answer('Enter comment of dish')
 
-    def _is_valid_amount(self, value: str) -> bool:
-        return value.isdigit()
+    async def validation_handle(self, *args, **kwargs):
+        await DishFinishHandler(self._message, **self._data).handle()
 
 
 class DishFinishHandler(KeyboardHandler, MessageHandler):
@@ -41,9 +47,8 @@ class DishFinishHandler(KeyboardHandler, MessageHandler):
 
     def _get_keyboard(self, *args, **kwargs) -> InlineKeyboardMarkup:
         inline_keyboard = []
-        for link in (DishDetailRedirect.category_list, DishDetailRedirect.category_detail):
-            # todo: add cost for user-friendly text
-            btn = InlineKeyboardButton(text=link,
+        for link, title in (DishDetailRedirect.category_list, DishDetailRedirect.category_detail):
+            btn = InlineKeyboardButton(text=title,
                                        callback_data=link)
             inline_keyboard.append([btn])
         inline_markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
