@@ -2,6 +2,7 @@ import re
 
 from aiogram.types.inline_keyboard_markup import InlineKeyboardMarkup
 from aiogram.types.inline_keyboard_button import InlineKeyboardButton
+from aiogram.fsm.state import State
 
 from base.handlers import MessageHandler, CallbackHandler, KeyboardHandler, BaseDishList
 from menu.category.services import CategoryMessageHandler
@@ -54,38 +55,86 @@ class MenuDishListCallbackHandler(MenuBaseDishList, CallbackHandler):
         return int(category_data.split('_')[-1])
 
 
+# todo: in base dish logic
 class BaseDishAmount:
     async def handle(self, *args, **kwargs):
-        await self._state.set_state(Dish.amount)
+        await self._state.set_state(self._get_state())
         await self._message.answer('Enter amount of dish')
 
     async def validation_handle(self, *args, **kwargs):
-        if not self._is_valid_amount(self._message.text):
-            await self._message.answer('Invalid amount of dish')
-            from menu.dish.handlers import dish_detail_amount_error_handler
-            await dish_detail_amount_error_handler(self._message, **self._data)
+        if self._is_valid_amount(self._message.text):
+            await self._success()
             return
-        await DishCommentHandler(self._message, **self._data).handle()
+        await self._message.answer('Invalid amount of dish')
+        await self._fail()
 
     def _is_valid_amount(self, value: str) -> bool:
         return value.isdigit()
 
+    def _get_state(self) -> State:
+        raise NotImplementedError
 
-class DishAmountCallbackHandler(BaseDishAmount, CallbackHandler):
+    async def _fail(self, *args, **kwargs):
+        raise NotImplementedError
+
+    async def _success(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+class BaseMenuDishAmount(BaseDishAmount):
+    def _get_state(self) -> State:
+        return Dish.amount
+
+    async def _fail(self, *args, **kwargs):
+        from menu.dish.handlers import dish_detail_amount_error_handler
+        await dish_detail_amount_error_handler(self._message, **self._data)
+
+    async def _success(self, *args, **kwargs):
+        await MenuDishCommentHandler(self._message, **self._data).handle()
+
+
+class MenuDishAmountCallbackHandler(BaseMenuDishAmount, CallbackHandler):
     pass
 
 
-class DishAmountMessageHandler(BaseDishAmount, MessageHandler):
+class MenuDishAmountMessageHandler(BaseMenuDishAmount, MessageHandler):
     pass
 
 
-class DishCommentHandler(MessageHandler):
+# todo: in base dish logic
+class BaseDishCommentHandler(MessageHandler):
     async def handle(self, *args, **kwargs):
-        await self._state.set_state(Dish.comment)
+        await self._state.set_state(self._get_state())
         await self._message.answer('Enter comment of dish')
 
     async def validation_handle(self, *args, **kwargs):
+        if self._is_valid_comment(self._message.text):
+            await self._success()
+            return
+        await self._fail()
+
+    def _is_valid_comment(self, value: str) -> bool:
+        return True
+
+    def _get_state(self) -> State:
+        raise NotImplementedError
+
+    async def _fail(self, *args, **kwargs):
+        raise NotImplementedError
+
+    async def _success(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+class MenuDishCommentHandler(BaseDishCommentHandler, MessageHandler):
+    def _get_state(self) -> State:
+        return Dish.comment
+
+    async def _success(self, *args, **kwargs):
         await DishFinishHandler(self._message, **self._data).handle()
+
+    async def _fail(self, *args, **kwargs):
+        pass
 
 
 class DishFinishHandler(KeyboardHandler, MessageHandler):
