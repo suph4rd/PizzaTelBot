@@ -4,7 +4,8 @@ from aiogram.types.inline_keyboard_markup import InlineKeyboardMarkup
 from aiogram.types.inline_keyboard_button import InlineKeyboardButton
 from aiogram.fsm.state import State
 
-from base.handlers import MessageHandler, CallbackHandler, KeyboardHandler, BaseDishList
+from base.dish.handlers import BaseDishCommentHandler, BaseDishAmount, BaseDishList
+from base.handlers import MessageHandler, CallbackHandler, KeyboardHandler
 from menu.category.services import CategoryMessageHandler
 from menu.dish.consts import DishDetailRedirect
 from menu.dish.states import Dish
@@ -55,32 +56,6 @@ class MenuDishListCallbackHandler(MenuBaseDishList, CallbackHandler):
         return int(category_data.split('_')[-1])
 
 
-# todo: in base dish logic
-class BaseDishAmount:
-    async def handle(self, *args, **kwargs):
-        await self._state.set_state(self._get_state())
-        await self._message.answer('Enter amount of dish')
-
-    async def validation_handle(self, *args, **kwargs):
-        if self._is_valid_amount(self._message.text):
-            await self._success()
-            return
-        await self._message.answer('Invalid amount of dish')
-        await self._fail()
-
-    def _is_valid_amount(self, value: str) -> bool:
-        return value.isdigit()
-
-    def _get_state(self) -> State:
-        raise NotImplementedError
-
-    async def _fail(self, *args, **kwargs):
-        raise NotImplementedError
-
-    async def _success(self, *args, **kwargs):
-        raise NotImplementedError
-
-
 class BaseMenuDishAmount(BaseDishAmount):
     def _get_state(self) -> State:
         return Dish.amount
@@ -99,31 +74,6 @@ class MenuDishAmountCallbackHandler(BaseMenuDishAmount, CallbackHandler):
 
 class MenuDishAmountMessageHandler(BaseMenuDishAmount, MessageHandler):
     pass
-
-
-# todo: in base dish logic
-class BaseDishCommentHandler(MessageHandler):
-    async def handle(self, *args, **kwargs):
-        await self._state.set_state(self._get_state())
-        await self._message.answer('Enter comment of dish')
-
-    async def validation_handle(self, *args, **kwargs):
-        if self._is_valid_comment(self._message.text):
-            await self._success()
-            return
-        await self._fail()
-
-    def _is_valid_comment(self, value: str) -> bool:
-        return True
-
-    def _get_state(self) -> State:
-        raise NotImplementedError
-
-    async def _fail(self, *args, **kwargs):
-        raise NotImplementedError
-
-    async def _success(self, *args, **kwargs):
-        raise NotImplementedError
 
 
 class MenuDishCommentHandler(BaseDishCommentHandler, MessageHandler):
